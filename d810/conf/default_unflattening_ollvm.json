@@ -837,6 +837,11 @@
       "config": {}
     },
     {
+      "name": "V9_UnsafeMagicModulo",
+      "is_activated": true,
+      "config": {}
+    },
+    {
       "name": "V9_IndirectCall",
       "is_activated": true,
       "config": {}
@@ -948,7 +953,8 @@
           "JnzRule5",
           "JnzRule6",
           "JnzRule7",
-          "JnzRule8"
+          "JnzRule8",
+          "V9_UnsafeOpaquePointerAliasRule"
         ]
       }
     }

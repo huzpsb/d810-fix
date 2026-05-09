@@ -18,6 +18,32 @@ from d810.optimizers.instructions.pattern_matching.experimental import *
 import ida_bytes
 import idc
 
+from ida_hexrays import m_sub, m_mul, m_umod, mop_d
+from d810.ast import AstNode, AstLeaf, AstConstant
+from d810.hexrays_helpers import equal_mops_bypass_xdu
+
+def is_mop_inside(mop, target_mop):
+    if not mop:
+        return False
+    if equal_mops_bypass_xdu(mop, target_mop):
+        return True
+    if mop.t == mop_d:
+        ins = mop.d
+        return (is_mop_inside(ins.l, target_mop) or
+                is_mop_inside(ins.r, target_mop) or
+                is_mop_inside(ins.d, target_mop))
+    return False
+
+class V9_UnsafeMagicModulo(PatternMatchingRule):
+    PATTERN = AstNode(m_sub,
+                      AstLeaf("x"),
+                      AstNode(m_mul, AstLeaf("div_part"), AstConstant("divisor")))
+    REPLACEMENT_PATTERN = AstNode(m_umod, AstLeaf("x"), AstConstant("divisor"))
+    def check_candidate(self, candidate):
+        target_x = candidate["x"].mop
+        div_mop = candidate["div_part"].mop
+        return is_mop_inside(div_mop, target_x)
+
 class V9_IndirectCall(PatternMatchingRule):
     PATTERN = AstNode(m_add, AstLeaf("obj_ptr"), AstConstant("key"))
     REPLACEMENT_PATTERN = AstNode(m_mov, AstConstant("new_target"))

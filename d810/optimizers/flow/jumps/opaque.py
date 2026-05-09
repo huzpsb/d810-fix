@@ -182,3 +182,41 @@ class JaeRule1(JumpOptimizationRule):
             return False
         self.jump_replacement_block_serial = self.direct_block_serial
         return True
+
+import ida_hexrays
+from d810.optimizers.flow.jumps.handler import JumpOptimizationRule
+
+class V9_UnsafeOpaquePointerAliasRule(JumpOptimizationRule):
+    ORIGINAL_JUMP_OPCODES = [ida_hexrays.m_jnz, ida_hexrays.m_jz]
+    LEFT_PATTERN = None
+    RIGHT_PATTERN = None
+    def check_pattern_and_replace(self, blk, instruction, left_ast, right_ast):
+        if instruction.opcode not in self.ORIGINAL_JUMP_OPCODES:
+            return None
+        back_edge_idx = -1
+        for i in range(2):
+            if blk.succ(i) <= blk.serial:
+                back_edge_idx = i
+                break
+        if back_edge_idx == -1:
+            return None
+        stx_ins = None
+        curr = instruction.prev
+        while curr:
+            if curr.opcode in [ida_hexrays.m_stx, ida_hexrays.m_mov]:
+                stx_ins = curr
+                break
+            curr = curr.prev
+        if not stx_ins:
+            return None
+        source_mop = stx_ins.l
+        is_source_constant = (source_mop.t == ida_hexrays.mop_n)
+        if not is_source_constant:
+            return None
+        real_next_block = blk.succ(1 - back_edge_idx)
+        new_ins = ida_hexrays.minsn_t(instruction)
+        new_ins.opcode = ida_hexrays.m_goto
+        new_ins.l.make_blkref(real_next_block)
+        new_ins.r.erase()
+        new_ins.d.make_blkref(real_next_block)
+        return new_ins
