@@ -1,0 +1,10 @@
+{
+  "erase_logs_on_reload": true,
+  "generate_z3_code": true,
+  "dump_intermediate_microcode": true,
+  "log_dir": null,
+  "configurations": [
+    "default_unflattening_ollvm.json"
+  ],
+  "last_project_index": 0
+}
